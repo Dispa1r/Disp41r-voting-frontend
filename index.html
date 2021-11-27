@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="description" content="" />
+    <meta name="author" content="" />
+    <title>Disp41r Super Voting System</title>
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+    <!-- Font Awesome icons (free version)-->
+    <script src="https://use.fontawesome.com/releases/v5.15.4/js/all.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/near-api-js/dist/near-api-js.min.js"></script>
+    <!-- Google fonts-->
+    <script src="js/big.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Varela+Round" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet" />
+    <!-- Core theme CSS (includes Bootstrap)-->
+    <link href="css/styles.css" rel="stylesheet" />
+</head>
+
+<script>
+    function toNear(value) {
+        return Big(value).times(10 ** 24).toFixed();
+    }
+    var CONTRACT_NAME = 'dispa1r_vote.testnet';
+    // Log in user using NEAR Wallet on "Sign In" button click
+    async function signIn() {
+        let near = await nearApi.connect({
+            nodeUrl: "https://rpc.testnet.near.org",
+            walletUrl: "https://wallet.testnet.near.org",
+            helperUrl: "https://helper.testnet.near.org",
+            explorerUrl: "https://explorer.testnet.near.org",
+            networkId: 'testnet',
+            keyStore: new window.nearApi.keyStores.BrowserLocalStorageKeyStore(window.localStorage, 'dispa1r.testnet')
+        });
+        window.walletConnection = new nearApi.WalletConnection(near);
+        console.log(window.walletConnection);
+        if (!walletConnection.isSignedIn()) {
+            walletConnection.requestSignIn(CONTRACT_NAME, 'Nearvember');
+        }
+        if (walletConnection.isSignedIn()) {
+            //window.location.href = "./hack.html";
+            window.userName = window.walletConnection.getAccountId();
+            document.getElementById("p1").innerHTML = "hello ! " + userName;
+            console.log(userName);
+            account = window.walletConnection.account();
+            // connect to a NEAR smart contract
+            window.contract = new nearApi.Contract(account, CONTRACT_NAME, {
+                viewMethods: ['get_tmp_winner', 'get_total_votes_for', 'get_title', 'get_candidates'],
+                changeMethods: ['add_candidate', 'vote_without_near', 'vote_with_near', 'check_my_vote', 'storage_deposit']
+            });
+        }
+        window.scrollTo(0, 550);
+        await callTitle();
+        await callLeader();
+        await callMyVote();
+
+
+    }
+
+    async function callHello() {
+        // call the contract
+        console.log(document.getElementById('input').value);
+        let resp = await window.contract.HelloWorld({
+                args: {
+                    name: document.getElementById('input').value
+                }
+            })
+            // //testing code
+            // let contract = "test";
+
+        // clear the form
+        // Output from contract
+        document.getElementById('response').innerHTML = resp;
+        return resp;
+    }
+
+    async function callLeader() {
+        // call the contract
+        let resp = await window.contract.get_candidates({})
+            // //testing code
+            // let contract = "test";
+
+        // clear the form
+        // Output from contract
+        var tmpHtml = '<center><h2>Leaderboard</h2>';
+        for (var k in resp) { //遍历packJson 对象的每个key/value对,k为key
+            console.log(resp[k])
+            var tmpName = k;
+            var tmpValue = resp[k];
+            tmpHtml += tmpName + ": " + tmpValue + "</br>";
+
+            // var createDiv = document.createElement("div");
+            // var result = document.getElementById("result");
+            // createDiv.innerHTML = "<h2>Token Id ：" + resp[k].token_id + ":</h2>       " + "<img src=\"" + resp[k].metadata.media + "\" style=\"width: 400px;height:200px\"> </br></br>" + "";
+            // document.getElementById('result').appendChild(createDiv);
+        }
+        tmpHtml += "</center>"
+        document.getElementById("leaderBoard").innerHTML = tmpHtml;
+        return resp;
+    }
+
+
+    async function callTitle() {
+        // call the contract
+        //console.log(document.getElementById('input').value);
+        let resp = await window.contract.get_title({})
+            // //testing code
+            // let contract = "test";
+
+        // clear the form
+        // Output from contract
+        var winner = await callWinner();
+        document.getElementById('title').innerHTML = "Title: " + resp + ", Tmp Winner: " + winner;
+        return resp;
+    }
+
+    async function callWinner() {
+        // call the contract
+        //console.log(document.getElementById('input').value);
+        let resp = await window.contract.get_tmp_winner({})
+            // //testing code
+            // let contract = "test";
+
+        // clear the form
+        // Output from contract
+        return resp;
+    }
+
+    async function callMyVote() {
+        // call the contract
+        //console.log(document.getElementById('input').value);
+        let resp = await window.contract.check_my_vote({})
+            // //testing code
+            // let contract = "test";
+
+        // clear the form
+        // Output from contract
+        console.log(resp);
+        document.getElementById("p3").innerHTML = "My vote: " + resp;
+        return resp;
+    }
+
+    async function callCandidate() {
+        var candidate = document.getElementById("candidate").value;
+        let resp = await window.contract.add_candidate({
+            args: {
+                "candidate": candidate,
+            }
+        }, )
+        var createDiv = document.createElement("div");
+        createDiv.innerHTML = resp;
+        document.getElementById('add candidate').appendChild(createDiv);
+        return resp;
+    }
+
+    async function callVoteWithNear() {
+        var candidate = document.getElementById("target2").value;
+        var depositNum = document.getElementById("vote num").value;
+        var finalNum = toNear(parseInt(depositNum));
+        console.log(finalNum);
+        let resp = await window.contract.vote_with_near({
+
+            "name": candidate,
+
+        }, 200000000000000, finalNum)
+        console.log(resp);
+        var createDiv = document.createElement("div");
+        createDiv.innerHTML = resp;
+        document.getElementById('with').appendChild(createDiv);
+        alert(resp);
+        return resp;
+
+
+    }
+
+    async function callVoteWithoutNear() {
+        var candidate = document.getElementById("target1").value;
+        console.log(candidate);
+        let resp = await window.contract.vote_without_near({
+            args: {
+                "name": candidate,
+            }
+        }, )
+        console.log(resp);
+        document.getElementById("p2").innerHTML = resp;
+        location.reload();
+        return resp;
+    }
+
+    async function signOut() {
+        window.walletConnection.signOut();
+        location.reload();
+    }
+</script>
+
+<body id="page-top" onload="signIn()">
+
+    <!-- Masthead-->
+    <header class="masthead">
+        <div class="container px-4 px-lg-5 d-flex h-100 align-items-center justify-content-center">
+            <div class="d-flex justify-content-center">
+                <div class="text-center">
+                    <h1 class="mx-auto my-0 text-uppercase">NEAR</h1>
+                    <h2 class="text-white-50 mx-auto mt-2 mb-5">Just go and hack it! Please click the connect wallet button until your account shows if you reload the page</h2>
+                    <div class="sign-in">
+                        <button onclick="signIn()" type="button" class="btn btn-primary">Connect wallet</a>
+                        </br>
+                        <button onclick="signOut()" type="button" class="btn btn-primary">Sign out</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- Projects-->
+    <div>
+        <h1 id="p1">Hello World!</h1>
+    </div>
+    <div>
+        <h1 id="p3">loading your vote...</h1>
+    </div>
+    <center>
+        <h1 id="title">Title of voting</h1>
+    </center>
+    <div id="leaderBoard">
+    </div>
+    <div class="row input-group-newsletter" id="add candidate">
+    <div class="col">
+        <input class="form-control" id="candidate" placeholder="please input the candidate to add" />
+    </div>
+    <div class="col">
+        <button onclick="callCandidate()" class="btn btn-primary" id="submitButton" type="submit">Add the candidate!</button>
+                    </div>
+                </div>
+                </br>
+                <div class="row input-group-newsletter" id="without">
+                    <div class="col">
+                        <input class="form-control" id="target1" placeholder="please input the candidate to vote!" />
+                    </div>
+                    <div class="col">
+                        <button onclick="callVoteWithoutNear()" class="btn btn-primary" id="submitButton" type="submit">Vote without near</button>
+                        </br>
+                        </br>
+                        <h2 id="p2">Please wait for a while :)</h2>
+                        </br>
+                        </br>
+                    </div>
+
+                    <h1>With or without, that's a question, you have just one chance :(</h1>
+                    </br>
+                    </br>
+                    </br>
+                    </br>
+                    <div class="row input-group-newsletter" id="with">
+                        <div class="col">
+                            <input class="form-control" id="target2" placeholder="please input the candidate to vote!" />
+                        </div>
+                        <div class="col">
+                            <input class="form-control" id="vote num" placeholder="please input the number to support!" />
+                        </div>
+                        <div class="col">
+                            <button onclick="callVoteWithNear()" class="btn btn-primary" id="submitButton" type="submit">Vote with near</button>
+                        </div>
+                        </br>
+                        </br>
+                        </br>
+                        </br>
+                        </br>
+                        </br>
+                        </br>
+                        </br>
+                        </br>
+                        </br>
+                        </br>
+                        </br>
+                        </br>
+                        </br>
+                        <footer class="footer bg-black small text-center text-white-50">
+                            <div class="container px-4 px-lg-5">Copyright &copy; Disp41r 2021</div>
+                        </footer>
+                        <!-- Bootstrap core JS-->
+                        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+                        <!-- Core theme JS-->
+                        <script src="js/scripts.js"></script>
+                        <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+                        <!-- * *                               SB Forms JS                               * *-->
+                        <!-- * * Activate your form at https://startbootstrap.com/solution/contact-forms * *-->
+                        <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+                        <script src="https://cdn.startbootstrap.com/sb-forms-latest.js"></script>
+
+
+
+
+
+
+</body>
+
+</html>
